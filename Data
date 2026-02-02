@@ -1,0 +1,79 @@
+-- Серверная база ключей Phantom Hub
+-- Разместить на raw-хостинге (Pastebin/Gist/Hastebin)
+
+local KeyDatabase = {
+    ["PHANTOM-LIFETIME-XYZ123"] = {
+        hwid = nil, -- nil = любое устройство
+        expires = "infinity", -- "infinity" или "YYYY-MM-DD"
+        created = "2024-01-01"
+    },
+    ["TEST-14DAYS-ABC789"] = {
+        hwid = nil, -- Свободный для активации
+        expires = "2024-12-31",
+        created = "2024-01-01"
+    },
+    ["DEMO-24HOURS-DEF456"] = {
+        hwid = "12345:67890", -- Уже привязан
+        expires = "infinity",
+        created = "2024-01-01"
+    }
+}
+
+-- Парсинг параметров из URL
+local function parseQueryString(query)
+    local params = {}
+    for key, value in string.gmatch(query, "([^&=]+)=([^&=]+)") do
+        params[key] = value
+    end
+    return params
+end
+
+-- Основная логика обработки
+local function processRequest(params)
+    local key = params.key
+    local hwid = params.hwid
+    local action = params.action or "validate"
+    
+    -- Проверка наличия ключа
+    if not KeyDatabase[key] then
+        return "ERROR|Invalid key"
+    end
+    
+    local keyData = KeyDatabase[key]
+    
+    -- Проверка срока действия
+    if keyData.expires ~= "infinity" then
+        local expiryDate = keyData.expires
+        local currentDate = os.date("%Y-%m-%d")
+        if expiryDate < currentDate then
+            return "ERROR|Expired"
+        end
+    end
+    
+    if action == "validate" then
+        -- Проверка HWID
+        if keyData.hwid == nil then
+            -- Первая активация
+            KeyDatabase[key].hwid = hwid
+            return "SUCCESS|" .. keyData.expires
+        elseif keyData.hwid == hwid then
+            -- HWID совпадает
+            return "SUCCESS|" .. keyData.expires
+        else
+            -- HWID не совпадает
+            return "ERROR|HWID mismatch"
+        end
+    elseif action == "get_expiry" then
+        -- Просто возвращаем срок
+        return "SUCCESS|" .. keyData.expires
+    end
+    
+    return "ERROR|Invalid action"
+end
+
+-- Точка входа (имитация запроса)
+local queryString = ... -- Получаем строку запроса из URL
+local params = parseQueryString(queryString)
+local result = processRequest(params)
+
+return result -- Возвращаем одну строку ответа
