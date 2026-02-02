@@ -16,6 +16,11 @@ local KeyDatabase = {
         hwid = "12345:67890", -- Уже привязан
         expires = "infinity",
         created = "2024-01-01"
+    },
+    ["123"] = {
+        hwid = "nil", -- Уже привязан
+        expires = "infinity",
+        created = "2024-01-01"
     }
 }
 
